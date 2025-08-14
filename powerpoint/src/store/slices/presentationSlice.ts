@@ -1,19 +1,17 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit"
-import type * as fabric from "fabric"
 
 export interface Slide {
   id: string
   name: string
-  content: string 
+  content: string // JSON string of fabric canvas
   thumbnail?: string
 }
 
 export interface PresentationState {
   slides: Slide[]
   activeSlideIndex: number
-  canvas: fabric.Canvas | null
   selectedTool: "select" | "text" | "rectangle" | "circle" | "line" | "image"
-  selectedObject: fabric.Object | null
+  selectedObject: any | null // Using any since fabric.Object can't be serialized
 }
 
 const initialState: PresentationState = {
@@ -25,7 +23,6 @@ const initialState: PresentationState = {
     },
   ],
   activeSlideIndex: 0,
-  canvas: null,
   selectedTool: "select",
   selectedObject: null,
 }
@@ -34,9 +31,6 @@ const presentationSlice = createSlice({
   name: "presentation",
   initialState,
   reducers: {
-    setCanvas: (state, action: PayloadAction<fabric.Canvas>) => {
-      state.canvas = action.payload
-    },
     addSlide: (state) => {
       const newSlide: Slide = {
         id: Date.now().toString(),
@@ -48,8 +42,16 @@ const presentationSlice = createSlice({
     deleteSlide: (state, action: PayloadAction<number>) => {
       if (state.slides.length > 1) {
         state.slides.splice(action.payload, 1)
+
+        state.slides.forEach((slide, index) => {
+          slide.name = `Slide ${index + 1}`
+        })
+
+        // Adjust active slide index if necessary
         if (state.activeSlideIndex >= state.slides.length) {
           state.activeSlideIndex = state.slides.length - 1
+        } else if (state.activeSlideIndex > action.payload) {
+          state.activeSlideIndex = state.activeSlideIndex - 1
         }
       }
     },
@@ -65,8 +67,9 @@ const presentationSlice = createSlice({
     setSelectedTool: (state, action: PayloadAction<PresentationState["selectedTool"]>) => {
       state.selectedTool = action.payload
     },
-    setSelectedObject: (state, action: PayloadAction<fabric.Object | null>) => {
-      state.selectedObject = action.payload
+    setSelectedObject: (state, action: PayloadAction<any>) => {
+      // Store minimal object info instead of full fabric object
+      state.selectedObject = action.payload ? { type: action.payload.type, id: action.payload.id } : null
     },
     loadPresentation: (state, action: PayloadAction<{ slides: Slide[] }>) => {
       state.slides = action.payload.slides
@@ -82,7 +85,6 @@ const presentationSlice = createSlice({
 })
 
 export const {
-  setCanvas,
   addSlide,
   deleteSlide,
   setActiveSlide,

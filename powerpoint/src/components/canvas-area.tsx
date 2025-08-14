@@ -2,29 +2,44 @@
 
 import { useEffect, useRef } from "react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import {
-  updateSlideContent,
-  setSelectedObject,
-  updateSlideThumbnail,
-  setCanvas,
-} from "@/store/slices/presentationSlice"
+import { updateSlideContent, setSelectedObject, updateSlideThumbnail } from "@/store/slices/presentationSlice"
 import { saveState } from "@/store/slices/undoRedoSlice"
 import * as fabric from "fabric"
+import { useCanvas } from "./canvas-context"
 
 export default function CanvasArea() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const fabricCanvasRef = useRef<fabric.Canvas | null>(null)
+  const canvasElementRef = useRef<HTMLCanvasElement>(null)
+  const { canvasRef } = useCanvas()
+  const previousSlideIndex = useRef<number>(0)
   const dispatch = useAppDispatch()
-  const { canvas, activeSlideIndex, slides } = useAppSelector((state) => state.presentation)
+  const { activeSlideIndex, slides } = useAppSelector((state) => state.presentation)
+
+  const saveCurrentSlideContent = (slideIndex: number) => {
+    const fabricCanvas = canvasRef.current
+    if (!fabricCanvas) return
+
+    try {
+      const currentContent = JSON.stringify(fabricCanvas.toJSON())
+      dispatch(updateSlideContent({ index: slideIndex, content: currentContent }))
+
+      // Update thumbnail
+      const thumbnail = fabricCanvas.toDataURL({ format: "png", quality: 0.3, multiplier: 0.2 })
+      dispatch(updateSlideThumbnail({ index: slideIndex, thumbnail }))
+
+      console.log("Saved slide content for slide", slideIndex)
+    } catch (error) {
+      console.error("Failed to save slide content:", error)
+    }
+  }
 
   // Initialize Fabric.js canvas
   useEffect(() => {
-    if (!canvasRef.current || fabricCanvasRef.current) return
+    if (!canvasElementRef.current || canvasRef.current) return
 
     try {
       console.log("Initializing Fabric.js canvas...")
 
-      const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+      const fabricCanvas = new fabric.Canvas(canvasElementRef.current, {
         width: 800,
         height: 600,
         backgroundColor: "#ffffff",
@@ -32,21 +47,24 @@ export default function CanvasArea() {
         preserveObjectStacking: true,
       })
 
-      fabricCanvasRef.current = fabricCanvas
-      dispatch(setCanvas(fabricCanvas))
+      fabricCanvas.renderAll()
+      canvasRef.current = fabricCanvas
+      previousSlideIndex.current = activeSlideIndex
 
-      console.log("Fabric.js canvas initialized successfully")
+      console.log("Fabric.js canvas initialized and ready:", !!canvasRef.current)
 
       // Load initial slide content if available
       if (slides[activeSlideIndex]?.content) {
         fabricCanvas.loadFromJSON(slides[activeSlideIndex].content, () => {
           fabricCanvas.renderAll()
           dispatch(saveState(slides[activeSlideIndex].content))
+          console.log("Initial slide content loaded")
         })
       } else {
         // Save initial empty state
         const initialState = JSON.stringify(fabricCanvas.toJSON())
         dispatch(saveState(initialState))
+        console.log("Initial empty state saved")
       }
     } catch (error) {
       console.error("Failed to initialize Fabric.js canvas:", error)
@@ -54,16 +72,17 @@ export default function CanvasArea() {
 
     // Cleanup function
     return () => {
-      if (fabricCanvasRef.current) {
-        fabricCanvasRef.current.dispose()
-        fabricCanvasRef.current = null
+      if (canvasRef.current) {
+        console.log("Disposing canvas...")
+        canvasRef.current.dispose()
+        canvasRef.current = null
       }
     }
-  }, [dispatch, activeSlideIndex, slides])
+  }, [dispatch, canvasRef, activeSlideIndex, slides])
 
   // Set up event listeners when canvas is available
   useEffect(() => {
-    const fabricCanvas = fabricCanvasRef.current
+    const fabricCanvas = canvasRef.current
     if (!fabricCanvas) return
 
     console.log("Setting up canvas event listeners...")
@@ -82,7 +101,6 @@ export default function CanvasArea() {
 
     const handleObjectModified = () => {
       try {
-        // Save canvas state when objects are modified
         const canvasData = JSON.stringify(fabricCanvas.toJSON())
         dispatch(updateSlideContent({ index: activeSlideIndex, content: canvasData }))
         dispatch(saveState(canvasData))
@@ -111,30 +129,46 @@ export default function CanvasArea() {
       fabricCanvas.off("object:added", handleObjectModified)
       fabricCanvas.off("object:removed", handleObjectModified)
     }
-  }, [dispatch, activeSlideIndex])
+  }, [dispatch, activeSlideIndex, canvasRef])
 
-  // Handle slide changes
   useEffect(() => {
-    const fabricCanvas = fabricCanvasRef.current
+    const fabricCanvas = canvasRef.current
     if (!fabricCanvas || !slides[activeSlideIndex]) return
+
+    // Save current slide content BEFORE switching (if not the initial load)
+    if (previousSlideIndex.current !== activeSlideIndex && slides[previousSlideIndex.current]) {
+      console.log("Saving content for previous slide", previousSlideIndex.current)
+      saveCurrentSlideContent(previousSlideIndex.current)
+    }
 
     console.log("Loading slide content for slide", activeSlideIndex)
 
     try {
+      // Clear canvas first
+      fabricCanvas.clear()
+
       // Load the active slide content
-      fabricCanvas.loadFromJSON(slides[activeSlideIndex].content, () => {
+      if (slides[activeSlideIndex].content) {
+        fabricCanvas.loadFromJSON(slides[activeSlideIndex].content, () => {
+          fabricCanvas.renderAll()
+          console.log("Slide content loaded successfully")
+        })
+      } else {
+        // Empty slide
         fabricCanvas.renderAll()
-        console.log("Slide content loaded successfully")
-      })
+      }
+
+      // Update previous slide index AFTER loading
+      previousSlideIndex.current = activeSlideIndex
     } catch (error) {
       console.error("Failed to load slide content:", error)
     }
-  }, [activeSlideIndex, slides])
+  }, [activeSlideIndex, slides, canvasRef])
 
   return (
     <div className="flex items-center justify-center h-full p-8">
       <div className="bg-white shadow-xl rounded-lg overflow-hidden border border-border">
-        <canvas ref={canvasRef} className="block" style={{ cursor: "default" }} />
+        <canvas ref={canvasElementRef} className="block" style={{ cursor: "default" }} />
       </div>
     </div>
   )

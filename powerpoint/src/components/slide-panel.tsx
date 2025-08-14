@@ -1,15 +1,17 @@
 "use client"
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { addSlide, deleteSlide, setActiveSlide } from "@/store/slices/presentationSlice"
+import { addSlide, deleteSlide, setActiveSlide, updateSlideContent } from "@/store/slices/presentationSlice"
 import { clearHistory } from "@/store/slices/undoRedoSlice"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Plus, Trash2 } from "lucide-react"
+import { useCanvas } from "./canvas-context"
 
 export default function SlidePanel() {
   const dispatch = useAppDispatch()
   const { slides, activeSlideIndex } = useAppSelector((state) => state.presentation)
+  const { canvasRef } = useCanvas()
 
   const handleAddSlide = () => {
     dispatch(addSlide())
@@ -24,6 +26,16 @@ export default function SlidePanel() {
   }
 
   const handleSelectSlide = (index: number) => {
+    const canvas = canvasRef.current
+    if (canvas) {
+      try {
+        const currentContent = JSON.stringify(canvas.toJSON())
+        dispatch(updateSlideContent({ index: activeSlideIndex, content: currentContent }))
+      } catch (error) {
+        console.error("Failed to save current slide content:", error)
+      }
+    }
+
     dispatch(setActiveSlide(index))
     dispatch(clearHistory())
   }

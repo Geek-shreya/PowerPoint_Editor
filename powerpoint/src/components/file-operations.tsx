@@ -2,14 +2,16 @@
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { loadPresentation } from "@/store/slices/presentationSlice"
-import { Button } from "@/components/ui/button" 
+import { Button } from "@/components/ui/button"
 import { Save, FolderOpen, Download } from "lucide-react"
-    import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast"
+import { useCanvas } from "./canvas-context"
 
 export default function FileOperations() {
   const dispatch = useAppDispatch()
-  const { slides, canvas } = useAppSelector((state) => state.presentation)
+  const { slides } = useAppSelector((state) => state.presentation)
   const { toast } = useToast()
+  const { canvasRef } = useCanvas()
 
   const savePresentation = () => {
     try {
@@ -59,10 +61,9 @@ export default function FileOperations() {
           if (data.slides && Array.isArray(data.slides)) {
             dispatch(loadPresentation({ slides: data.slides }))
 
-            // Reload canvas with first slide
-            if (canvas && data.slides[0]?.content) {
-              canvas.loadFromJSON(data.slides[0].content, () => {
-                canvas.renderAll()
+            if (canvasRef.current && data.slides[0]?.content) {
+              canvasRef.current.loadFromJSON(data.slides[0].content, () => {
+                canvasRef.current?.renderAll()
               })
             }
 
@@ -88,10 +89,17 @@ export default function FileOperations() {
   }
 
   const exportSlideAsImage = () => {
-    if (!canvas) return
+    if (!canvasRef.current) {
+      toast({
+        title: "Error",
+        description: "Canvas not available for export.",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
-      const dataURL = canvas.toDataURL({
+      const dataURL = canvasRef.current.toDataURL({
         format: "png",
         quality: 1,
         multiplier: 2,
@@ -107,6 +115,7 @@ export default function FileOperations() {
         description: "Slide exported as image!",
       })
     } catch (error) {
+      console.error("Export error:", error)
       toast({
         title: "Error",
         description: "Failed to export slide.",
