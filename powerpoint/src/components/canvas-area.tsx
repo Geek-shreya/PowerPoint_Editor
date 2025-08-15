@@ -103,7 +103,7 @@ export default function CanvasArea() {
             top: selectedObject.top,
             width: selectedObject.width,
             height: selectedObject.height,
-            opacity: selectedObject.opacity,
+            opacity: (selectedObject as any).opacity || 1,
           }),
         )
       } else {
@@ -123,7 +123,7 @@ export default function CanvasArea() {
             top: selectedObject.top,
             width: selectedObject.width,
             height: selectedObject.height,
-            opacity: selectedObject.opacity,
+            opacity: (selectedObject as any).opacity || 1,
           }),
         )
       } else {

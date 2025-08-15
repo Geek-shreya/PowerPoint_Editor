@@ -14,6 +14,7 @@ interface SelectedObjectInfo {
   top?: number
   width?: number
   height?: number
+  opacity?: number // Added opacity property to fix TypeScript error in property panel
 }
 
 export interface PresentationState {
