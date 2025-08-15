@@ -5,10 +5,10 @@ import { setSelectedTool } from "@/store/slices/presentationSlice"
 import { undo, redo, saveState } from "@/store/slices/undoRedoSlice"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { MousePointer2, Type, Square, Circle, Minus, ImageIcon, Undo, Redo } from "lucide-react"
-import * as fabric  from "fabric"
+import { Type, Square, Circle, Minus, ImageIcon, Undo, Redo } from "lucide-react"
+import * as fabric from "fabric"
 import FileOperations from "./file-operations"
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import { store } from "@/store/store"
 import { useCanvas } from "./canvas-context"
 
@@ -17,6 +17,71 @@ export default function Toolbar() {
   const { canvasRef } = useCanvas()
   const { selectedTool, selectedObject } = useAppSelector((state) => state.presentation)
   const { canUndo, canRedo } = useAppSelector((state) => state.undoRedo)
+
+  const handleUndo = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canUndo || !canvas) {
+      console.log("Cannot undo: canUndo =", canUndo, "canvas =", !!canvas)
+      return
+    }
+
+    try {
+      dispatch(undo())
+      setTimeout(() => {
+        const state = store.getState()
+        const currentState = state.undoRedo.present
+        if (currentState) {
+          canvas.loadFromJSON(currentState, () => {
+            canvas.renderAll()
+          })
+        }
+      }, 10)
+    } catch (error) {
+      console.error("Undo failed:", error)
+    }
+  }, [canUndo, canvasRef, dispatch])
+
+  const handleRedo = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canRedo || !canvas) {
+      console.log("Cannot redo: canRedo =", canRedo, "canvas =", !!canvas)
+      return
+    }
+
+    try {
+      dispatch(redo())
+      setTimeout(() => {
+        const state = store.getState()
+        const currentState = state.undoRedo.present
+        if (currentState) {
+          canvas.loadFromJSON(currentState, () => {
+            canvas.renderAll()
+          })
+        }
+      }, 10)
+    } catch (error) {
+      console.error("Redo failed:", error)
+    }
+  }, [canRedo, canvasRef, dispatch])
+
+  const deleteSelected = useCallback(() => {
+    const canvas = canvasRef.current
+    const activeObject = canvas?.getActiveObject()
+
+    if (!canvas || !activeObject) {
+      console.log("Cannot delete: canvas =", !!canvas, "activeObject =", !!activeObject)
+      return
+    }
+
+    try {
+      canvas.remove(activeObject)
+      canvas.renderAll()
+      saveCanvasState()
+      console.log("Selected object deleted successfully")
+    } catch (error) {
+      console.error("Failed to delete selected object:", error)
+    }
+  }, [canvasRef])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,7 +110,7 @@ export default function Toolbar() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [canUndo, canRedo, selectedObject])
+  }, [handleUndo, handleRedo, deleteSelected])
 
   const handleToolSelect = (tool: typeof selectedTool) => {
     dispatch(setSelectedTool(tool))
@@ -60,52 +125,6 @@ export default function Toolbar() {
       } catch (error) {
         console.error("Failed to save canvas state:", error)
       }
-    }
-  }
-
-  const handleUndo = () => {
-    const canvas = canvasRef.current
-    if (!canUndo || !canvas) {
-      console.log("Cannot undo: canUndo =", canUndo, "canvas =", !!canvas)
-      return
-    }
-
-    try {
-      dispatch(undo())
-      setTimeout(() => {
-        const state = store.getState()
-        const currentState = state.undoRedo.present
-        if (currentState) {
-          canvas.loadFromJSON(currentState, () => {
-            canvas.renderAll()
-          })
-        }
-      }, 10)
-    } catch (error) {
-      console.error("Undo failed:", error)
-    }
-  }
-
-  const handleRedo = () => {
-    const canvas = canvasRef.current
-    if (!canRedo || !canvas) {
-      console.log("Cannot redo: canRedo =", canRedo, "canvas =", !!canvas)
-      return
-    }
-
-    try {
-      dispatch(redo())
-      setTimeout(() => {
-        const state = store.getState()
-        const currentState = state.undoRedo.present
-        if (currentState) {
-          canvas.loadFromJSON(currentState, () => {
-            canvas.renderAll()
-          })
-        }
-      }, 10)
-    } catch (error) {
-      console.error("Redo failed:", error)
     }
   }
 
@@ -281,25 +300,6 @@ export default function Toolbar() {
     }
   }
 
-  const deleteSelected = () => {
-    const canvas = canvasRef.current
-    const activeObject = canvas?.getActiveObject()
-
-    if (!canvas || !activeObject) {
-      console.log("Cannot delete: canvas =", !!canvas, "activeObject =", !!activeObject)
-      return
-    }
-
-    try {
-      canvas.remove(activeObject)
-      canvas.renderAll()
-      saveCanvasState()
-      console.log("Selected object deleted successfully")
-    } catch (error) {
-      console.error("Failed to delete selected object:", error)
-    }
-  }
-
   return (
     <div className="p-4 flex items-center gap-2 bg-background border-b">
       <div className="flex items-center gap-1">
@@ -320,6 +320,7 @@ export default function Toolbar() {
           onClick={() => handleToolSelect("select")}
           title="Select Tool"
         >
+          {/* Placeholder for select tool icon */}
         </Button>
       </div>
 

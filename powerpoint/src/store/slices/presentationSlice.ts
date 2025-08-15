@@ -7,11 +7,20 @@ export interface Slide {
   thumbnail?: string
 }
 
+interface SelectedObjectInfo {
+  type?: string
+  id?: string
+  left?: number
+  top?: number
+  width?: number
+  height?: number
+}
+
 export interface PresentationState {
   slides: Slide[]
   activeSlideIndex: number
   selectedTool: "select" | "text" | "rectangle" | "circle" | "line" | "image"
-  selectedObject: any | null // Using any since fabric.Object can't be serialized
+  selectedObject: SelectedObjectInfo | null
 }
 
 const initialState: PresentationState = {
@@ -67,9 +76,8 @@ const presentationSlice = createSlice({
     setSelectedTool: (state, action: PayloadAction<PresentationState["selectedTool"]>) => {
       state.selectedTool = action.payload
     },
-    setSelectedObject: (state, action: PayloadAction<any>) => {
-      // Store minimal object info instead of full fabric object
-      state.selectedObject = action.payload ? { type: action.payload.type, id: action.payload.id } : null
+    setSelectedObject: (state, action: PayloadAction<SelectedObjectInfo | null>) => {
+      state.selectedObject = action.payload
     },
     loadPresentation: (state, action: PayloadAction<{ slides: Slide[] }>) => {
       state.slides = action.payload.slides

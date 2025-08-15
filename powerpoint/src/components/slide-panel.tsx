@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Plus, Trash2 } from "lucide-react"
 import { useCanvas } from "./canvas-context"
+import Image from "next/image"
 
 export default function SlidePanel() {
   const dispatch = useAppDispatch()
@@ -79,9 +80,11 @@ export default function SlidePanel() {
                 <div className="text-sm font-medium mb-2">{slide.name}</div>
                 <div className="w-full h-16 bg-white border rounded overflow-hidden flex items-center justify-center text-xs text-muted-foreground">
                   {slide.thumbnail ? (
-                    <img
+                    <Image
                       src={slide.thumbnail || "/placeholder.svg"}
                       alt={slide.name}
+                      width={100}
+                      height={64}
                       className="w-full h-full object-contain"
                     />
                   ) : (

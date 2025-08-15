@@ -4,11 +4,16 @@ import { useEffect, useRef } from "react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { updateSlideContent, setSelectedObject, updateSlideThumbnail } from "@/store/slices/presentationSlice"
 import { saveState } from "@/store/slices/undoRedoSlice"
-import * as fabric  from "fabric"
+import * as  fabric from "fabric"
 import { useCanvas } from "./canvas-context"
 
 interface FabricSelectionEvent {
   selected: fabric.Object[]
+}
+
+interface FabricObjectWithId extends fabric.Object {
+  id?: string
+  uuid?: string
 }
 
 export default function CanvasArea() {
@@ -17,24 +22,6 @@ export default function CanvasArea() {
   const previousSlideIndex = useRef<number>(0)
   const dispatch = useAppDispatch()
   const { activeSlideIndex, slides } = useAppSelector((state) => state.presentation)
-
-  const saveCurrentSlideContent = (slideIndex: number) => {
-    const fabricCanvas = canvasRef.current
-    if (!fabricCanvas) return
-
-    try {
-      const currentContent = JSON.stringify(fabricCanvas.toJSON())
-      dispatch(updateSlideContent({ index: slideIndex, content: currentContent }))
-
-      // Update thumbnail
-      const thumbnail = fabricCanvas.toDataURL({ format: "png", quality: 0.3, multiplier: 0.2 })
-      dispatch(updateSlideThumbnail({ index: slideIndex, thumbnail }))
-
-      console.log("Saved slide content for slide", slideIndex)
-    } catch (error) {
-      console.error("Failed to save slide content:", error)
-    }
-  }
 
   // Initialize Fabric.js canvas
   useEffect(() => {
@@ -107,14 +94,16 @@ export default function CanvasArea() {
     const handleSelectionCreated = (e: FabricSelectionEvent) => {
       const selectedObject = e.selected[0]
       if (selectedObject) {
+        const objectWithId = selectedObject as FabricObjectWithId
         dispatch(
           setSelectedObject({
             type: selectedObject.type,
-            id: (selectedObject as any).id || (selectedObject as any).uuid,
+            id: objectWithId.id || objectWithId.uuid,
             left: selectedObject.left,
             top: selectedObject.top,
             width: selectedObject.width,
             height: selectedObject.height,
+            opacity: selectedObject.opacity,
           }),
         )
       } else {
@@ -125,14 +114,16 @@ export default function CanvasArea() {
     const handleSelectionUpdated = (e: FabricSelectionEvent) => {
       const selectedObject = e.selected[0]
       if (selectedObject) {
+        const objectWithId = selectedObject as FabricObjectWithId
         dispatch(
           setSelectedObject({
             type: selectedObject.type,
-            id: (selectedObject as any).id || (selectedObject as any).uuid,
+            id: objectWithId.id || objectWithId.uuid,
             left: selectedObject.left,
             top: selectedObject.top,
             width: selectedObject.width,
             height: selectedObject.height,
+            opacity: selectedObject.opacity,
           }),
         )
       } else {
@@ -146,12 +137,13 @@ export default function CanvasArea() {
 
     const handleObjectModified = () => {
       try {
-        const canvasData = JSON.stringify(fabricCanvas.toJSON())
+        if (!canvasRef.current) return
+        const canvasData = JSON.stringify(canvasRef.current.toJSON())
         dispatch(updateSlideContent({ index: activeSlideIndex, content: canvasData }))
         dispatch(saveState(canvasData))
 
         // Update thumbnail
-        const thumbnail = fabricCanvas.toDataURL({ format: "png", quality: 0.3, multiplier: 0.2 })
+        const thumbnail = canvasRef.current.toDataURL({ format: "png", quality: 0.3, multiplier: 0.2 })
         dispatch(updateSlideThumbnail({ index: activeSlideIndex, thumbnail }))
       } catch (error) {
         console.error("Failed to handle object modification:", error)
@@ -159,7 +151,6 @@ export default function CanvasArea() {
     }
 
     const handleTextChanged = () => {
-      console.log("Text changed, saving slide content...")
       // Small delay to ensure text changes are committed to the object
       setTimeout(() => {
         handleObjectModified()
@@ -167,7 +158,6 @@ export default function CanvasArea() {
     }
 
     const handleTextEditingExited = () => {
-      console.log("Text editing exited, saving slide content...")
       // Small delay to ensure text changes are committed to the object
       setTimeout(() => {
         handleObjectModified()
@@ -199,19 +189,12 @@ export default function CanvasArea() {
   useEffect(() => {
     const fabricCanvas = canvasRef.current
     if (!fabricCanvas || !fabricCanvas.getContext()) {
-      console.warn("Canvas or canvas context not available for slide switching")
       return
     }
 
     if (!slides[activeSlideIndex]) return
 
     if (previousSlideIndex.current !== activeSlideIndex) {
-      console.log(
-        "Saving content for previous slide",
-        previousSlideIndex.current,
-        "before switching to",
-        activeSlideIndex,
-      )
       try {
         const currentContent = JSON.stringify(fabricCanvas.toJSON())
         // Only save if the previous slide index is valid
@@ -221,15 +204,11 @@ export default function CanvasArea() {
           // Update thumbnail for previous slide
           const thumbnail = fabricCanvas.toDataURL({ format: "png", quality: 0.3, multiplier: 0.2 })
           dispatch(updateSlideThumbnail({ index: previousSlideIndex.current, thumbnail }))
-
-          console.log("Successfully saved previous slide content for slide", previousSlideIndex.current)
         }
       } catch (error) {
         console.error("Failed to save previous slide content:", error)
       }
     }
-
-    console.log("Loading slide content for slide", activeSlideIndex)
 
     try {
       const context = fabricCanvas.getContext()
@@ -244,12 +223,10 @@ export default function CanvasArea() {
       if (slides[activeSlideIndex].content) {
         fabricCanvas.loadFromJSON(slides[activeSlideIndex].content, () => {
           fabricCanvas.renderAll()
-          console.log("Slide content loaded successfully for slide", activeSlideIndex)
         })
       } else {
         // Empty slide
         fabricCanvas.renderAll()
-        console.log("Loaded empty slide", activeSlideIndex)
       }
 
       previousSlideIndex.current = activeSlideIndex
