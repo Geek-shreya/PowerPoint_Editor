@@ -1,7 +1,11 @@
-import type { NextConfig } from "next";
+const nextConfig = {
+  webpack: (config) => {
+    config.resolve.fallback = {
+      fs: false,
+      https: false
+    }
+    return config
+  }
+}
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
+export default nextConfig
