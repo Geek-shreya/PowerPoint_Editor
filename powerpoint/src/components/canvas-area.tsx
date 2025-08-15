@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { updateSlideContent, setSelectedObject, updateSlideThumbnail } from "@/store/slices/presentationSlice"
 import { saveState } from "@/store/slices/undoRedoSlice"
-import * as  fabric from "fabric"
+import * as fabric  from "fabric"
 import { useCanvas } from "./canvas-context"
 
 interface FabricSelectionEvent {
@@ -14,6 +14,10 @@ interface FabricSelectionEvent {
 interface FabricObjectWithId extends fabric.Object {
   id?: string
   uuid?: string
+}
+
+interface FabricObjectWithOpacity extends fabric.Object {
+  opacity: number
 }
 
 export default function CanvasArea() {
@@ -95,6 +99,7 @@ export default function CanvasArea() {
       const selectedObject = e.selected[0]
       if (selectedObject) {
         const objectWithId = selectedObject as FabricObjectWithId
+        const objectWithOpacity = selectedObject as FabricObjectWithOpacity
         dispatch(
           setSelectedObject({
             type: selectedObject.type,
@@ -103,7 +108,7 @@ export default function CanvasArea() {
             top: selectedObject.top,
             width: selectedObject.width,
             height: selectedObject.height,
-            opacity: (selectedObject as any).opacity || 1,
+            opacity: objectWithOpacity.opacity || 1,
           }),
         )
       } else {
@@ -115,6 +120,7 @@ export default function CanvasArea() {
       const selectedObject = e.selected[0]
       if (selectedObject) {
         const objectWithId = selectedObject as FabricObjectWithId
+        const objectWithOpacity = selectedObject as FabricObjectWithOpacity
         dispatch(
           setSelectedObject({
             type: selectedObject.type,
@@ -123,7 +129,7 @@ export default function CanvasArea() {
             top: selectedObject.top,
             width: selectedObject.width,
             height: selectedObject.height,
-            opacity: (selectedObject as any).opacity || 1,
+            opacity: objectWithOpacity.opacity || 1,
           }),
         )
       } else {

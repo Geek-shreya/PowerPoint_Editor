@@ -15,8 +15,20 @@ import { useCanvas } from "./canvas-context"
 export default function Toolbar() {
   const dispatch = useAppDispatch()
   const { canvasRef } = useCanvas()
-  const { selectedTool, selectedObject } = useAppSelector((state) => state.presentation)
+  const { selectedTool } = useAppSelector((state) => state.presentation)
   const { canUndo, canRedo } = useAppSelector((state) => state.undoRedo)
+
+  const saveCanvasState = useCallback(() => {
+    const canvas = canvasRef.current
+    if (canvas) {
+      try {
+        const canvasData = JSON.stringify(canvas.toJSON())
+        dispatch(saveState(canvasData))
+      } catch (error) {
+        console.error("Failed to save canvas state:", error)
+      }
+    }
+  }, [canvasRef, dispatch])
 
   const handleUndo = useCallback(() => {
     const canvas = canvasRef.current
@@ -81,7 +93,7 @@ export default function Toolbar() {
     } catch (error) {
       console.error("Failed to delete selected object:", error)
     }
-  }, [canvasRef])
+  }, [canvasRef, saveCanvasState])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -110,22 +122,10 @@ export default function Toolbar() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [handleUndo, handleRedo, deleteSelected])
+  }, [handleUndo, handleRedo, deleteSelected, saveCanvasState])
 
   const handleToolSelect = (tool: typeof selectedTool) => {
     dispatch(setSelectedTool(tool))
-  }
-
-  const saveCanvasState = () => {
-    const canvas = canvasRef.current
-    if (canvas) {
-      try {
-        const canvasData = JSON.stringify(canvas.toJSON())
-        dispatch(saveState(canvasData))
-      } catch (error) {
-        console.error("Failed to save canvas state:", error)
-      }
-    }
   }
 
   const addTextBox = () => {
