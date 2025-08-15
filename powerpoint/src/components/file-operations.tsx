@@ -1,15 +1,15 @@
 "use client"
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { loadPresentation } from "@/store/slices/presentationSlice"
+import { loadPresentation, setActiveSlide } from "@/store/slices/presentationSlice"
 import { Button } from "@/components/ui/button"
-import { Save, FolderOpen, Download } from "lucide-react"
+import { Save, FolderOpen, Download, FileDown, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useCanvas } from "./canvas-context"
 
 export default function FileOperations() {
   const dispatch = useAppDispatch()
-  const { slides } = useAppSelector((state) => state.presentation)
+  const { slides, activeSlide } = useAppSelector((state) => state.presentation)
   const { toast } = useToast()
   const { canvasRef } = useCanvas()
 
@@ -107,7 +107,7 @@ export default function FileOperations() {
 
       const link = document.createElement("a")
       link.href = dataURL
-      link.download = `slide-${Date.now()}.png`
+      link.download = `slide-${activeSlide + 1}.png`
       link.click()
 
       toast({
@@ -119,6 +119,137 @@ export default function FileOperations() {
       toast({
         title: "Error",
         description: "Failed to export slide.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const exportAllSlides = async () => {
+    if (!canvasRef.current) {
+      toast({
+        title: "Error",
+        description: "Canvas not available for export.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const originalActiveSlide = activeSlide
+
+      for (let i = 0; i < slides.length; i++) {
+        dispatch(setActiveSlide(i))
+
+        if (slides[i].content) {
+          await new Promise<void>((resolve) => {
+            canvasRef.current?.loadFromJSON(slides[i].content, () => {
+              canvasRef.current?.renderAll()
+              resolve()
+            })
+          })
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        const dataURL = canvasRef.current.toDataURL({
+          format: "png",
+          quality: 1,
+          multiplier: 2,
+        })
+
+        const link = document.createElement("a")
+        link.href = dataURL
+        link.download = `slide-${i + 1}.png`
+        link.click()
+
+        await new Promise((resolve) => setTimeout(resolve, 200))
+      }
+
+      dispatch(setActiveSlide(originalActiveSlide))
+      if (slides[originalActiveSlide]?.content) {
+        canvasRef.current.loadFromJSON(slides[originalActiveSlide].content, () => {
+          canvasRef.current?.renderAll()
+        })
+      }
+
+      toast({
+        title: "Success",
+        description: `All ${slides.length} slides exported successfully!`,
+      })
+    } catch (error) {
+      console.error("Export all error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to export all slides.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const exportAsPowerPoint = async () => {
+    if (!canvasRef.current) {
+      toast({
+        title: "Error",
+        description: "Canvas not available for export.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const PptxGenJS = (await import("pptxgenjs")).default
+
+      const pptx = new PptxGenJS()
+      const originalActiveSlide = activeSlide
+
+      for (let i = 0; i < slides.length; i++) {
+        dispatch(setActiveSlide(i))
+
+        if (slides[i].content) {
+          await new Promise<void>((resolve) => {
+            canvasRef.current?.loadFromJSON(slides[i].content, () => {
+              canvasRef.current?.renderAll()
+              resolve()
+            })
+          })
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        const dataURL = canvasRef.current.toDataURL({
+          format: "png",
+          quality: 1,
+          multiplier: 2,
+        })
+
+        const slide = pptx.addSlide()
+        slide.addImage({
+          data: dataURL,
+          x: 0,
+          y: 0,
+          w: "100%",
+          h: "100%",
+        })
+      }
+
+      dispatch(setActiveSlide(originalActiveSlide))
+      if (slides[originalActiveSlide]?.content) {
+        canvasRef.current.loadFromJSON(slides[originalActiveSlide].content, () => {
+          canvasRef.current?.renderAll()
+        })
+      }
+
+      await pptx.writeFile({ fileName: `presentation-${Date.now()}.pptx` })
+
+      toast({
+        title: "Success",
+        description: `PowerPoint presentation with ${slides.length} slides exported successfully!`,
+      })
+    } catch (error) {
+      console.error("PowerPoint export error:", error)
+      toast({
+        title: "Error",
+        description: "Failed to export as PowerPoint. Make sure to install dependencies.",
         variant: "destructive",
       })
     }
@@ -137,6 +268,14 @@ export default function FileOperations() {
       <Button variant="outline" size="sm" onClick={exportSlideAsImage}>
         <Download className="h-4 w-4 mr-1" />
         Export
+      </Button>
+      <Button variant="outline" size="sm" onClick={exportAllSlides}>
+        <FileDown className="h-4 w-4 mr-1" />
+        Export All
+      </Button>
+      <Button variant="outline" size="sm" onClick={exportAsPowerPoint}>
+        <FileText className="h-4 w-4 mr-1" />
+        Export PPT
       </Button>
     </div>
   )

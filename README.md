@@ -1,10 +1,10 @@
-# PowerPoint Editor - MetaUpSpace Hiring Task
+# PowerPoint Editor 
 
 A full-stack, production-ready PowerPoint-style presentation editor built with Next.js, Fabric.js, and Redux Toolkit.
 
 ## 🚀 Live Demo
 
-[View Live Application](https://your-deployment-url.vercel.app)
+[View Live Application](https://powerpoint-editor-metaupspace.vercel.app)
 
 ## ✨ Features
 
@@ -17,7 +17,7 @@ A full-stack, production-ready PowerPoint-style presentation editor built with N
 
 ### Advanced Features
 - **Undo/Redo**: Full undo/redo functionality with keyboard shortcuts
-- **Property Panel**: Real-time editing of object properties (colors, fonts, positions)
+- **Property Panel**: Real-time editing of object properties
 - **Slide Thumbnails**: Visual preview of all slides
 - **Image Export**: Export individual slides as PNG images
 - **Keyboard Shortcuts**: Ctrl+Z (undo), Ctrl+Y (redo), Del (delete)
@@ -37,8 +37,8 @@ A full-stack, production-ready PowerPoint-style presentation editor built with N
 
 1. **Clone the repository**
    \`\`\`bash
-   git clone https://github.com/your-username/powerpoint-editor.git
-   cd powerpoint-editor
+   git clone https://github.com/Geek-shreya/PowerPoint_Editor.git
+   cd powerpoint
    \`\`\`
 
 2. **Install dependencies**
@@ -148,31 +148,3 @@ The application is deployed on Vercel and fully functional in production:
    vercel --prod
    \`\`\`
 
-## 📋 Requirements Checklist
-
-- ✅ Slide-based presentation editor with Fabric.js
-- ✅ Add, delete, and switch between slides
-- ✅ Add and edit text, images, and shapes
-- ✅ Redux Toolkit for state management
-- ✅ Local JSON save/load functionality
-- ✅ Clean UI with Tailwind CSS
-- ✅ Slide thumbnails and navigation
-- ✅ Toolbar with element controls
-- ✅ Production deployment on Vercel
-- ✅ **Bonus**: Undo/Redo functionality
-- ✅ **Bonus**: Export slides as images
-- ✅ **Bonus**: Responsive design
-
-## 🤝 Contributing
-
-This project was built as a hiring task for MetaUpSpace. The implementation demonstrates:
-
-- Clean, maintainable code architecture
-- Modern React patterns with TypeScript
-- Production-ready deployment practices
-- Comprehensive feature implementation
-- User-focused design decisions
-
-## 📄 License
-
-This project is created for evaluation purposes as part of the MetaUpSpace hiring process.

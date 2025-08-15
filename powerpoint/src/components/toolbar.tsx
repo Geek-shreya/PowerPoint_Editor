@@ -320,7 +320,6 @@ export default function Toolbar() {
           onClick={() => handleToolSelect("select")}
           title="Select Tool"
         >
-          <MousePointer2 className="h-4 w-4" />
         </Button>
       </div>
 

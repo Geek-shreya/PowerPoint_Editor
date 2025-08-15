@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Providers } from "./providers"
 
 export const metadata: Metadata = {
-  title: "PowerPoint Editor - MetaUpSpace",
+  title: "PowerPoint Editor",
   description: "A full-stack PowerPoint-style presentation editor built with Next.js, Fabric.js, and Redux Toolkit",
   generator: "v0.app",
 }

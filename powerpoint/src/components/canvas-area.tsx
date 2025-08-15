@@ -113,6 +113,22 @@ export default function CanvasArea() {
       }
     }
 
+    const handleTextChanged = () => {
+      console.log("Text changed, saving slide content...")
+      // Small delay to ensure text changes are committed to the object
+      setTimeout(() => {
+        handleObjectModified()
+      }, 100)
+    }
+
+    const handleTextEditingExited = () => {
+      console.log("Text editing exited, saving slide content...")
+      // Small delay to ensure text changes are committed to the object
+      setTimeout(() => {
+        handleObjectModified()
+      }, 100)
+    }
+
     // Add event listeners
     fabricCanvas.on("selection:created", handleSelectionCreated)
     fabricCanvas.on("selection:updated", handleSelectionUpdated)
@@ -120,6 +136,8 @@ export default function CanvasArea() {
     fabricCanvas.on("object:modified", handleObjectModified)
     fabricCanvas.on("object:added", handleObjectModified)
     fabricCanvas.on("object:removed", handleObjectModified)
+    fabricCanvas.on("text:changed", handleTextChanged)
+    fabricCanvas.on("text:editing:exited", handleTextEditingExited)
 
     return () => {
       fabricCanvas.off("selection:created", handleSelectionCreated)
@@ -128,6 +146,8 @@ export default function CanvasArea() {
       fabricCanvas.off("object:modified", handleObjectModified)
       fabricCanvas.off("object:added", handleObjectModified)
       fabricCanvas.off("object:removed", handleObjectModified)
+      fabricCanvas.off("text:changed", handleTextChanged)
+      fabricCanvas.off("text:editing:exited", handleTextEditingExited)
     }
   }, [dispatch, activeSlideIndex, canvasRef])
 
@@ -135,35 +155,52 @@ export default function CanvasArea() {
     const fabricCanvas = canvasRef.current
     if (!fabricCanvas || !slides[activeSlideIndex]) return
 
-    // Save current slide content BEFORE switching (if not the initial load)
-    if (previousSlideIndex.current !== activeSlideIndex && slides[previousSlideIndex.current]) {
-      console.log("Saving content for previous slide", previousSlideIndex.current)
-      saveCurrentSlideContent(previousSlideIndex.current)
+    if (previousSlideIndex.current !== activeSlideIndex) {
+      console.log(
+        "Saving content for previous slide",
+        previousSlideIndex.current,
+        "before switching to",
+        activeSlideIndex,
+      )
+      try {
+        const currentContent = JSON.stringify(fabricCanvas.toJSON())
+        // Only save if the previous slide index is valid
+        if (previousSlideIndex.current >= 0 && previousSlideIndex.current < slides.length) {
+          dispatch(updateSlideContent({ index: previousSlideIndex.current, content: currentContent }))
+
+          // Update thumbnail for previous slide
+          const thumbnail = fabricCanvas.toDataURL({ format: "png", quality: 0.3, multiplier: 0.2 })
+          dispatch(updateSlideThumbnail({ index: previousSlideIndex.current, thumbnail }))
+
+          console.log("Successfully saved previous slide content for slide", previousSlideIndex.current)
+        }
+      } catch (error) {
+        console.error("Failed to save previous slide content:", error)
+      }
     }
 
     console.log("Loading slide content for slide", activeSlideIndex)
 
     try {
-      // Clear canvas first
       fabricCanvas.clear()
 
       // Load the active slide content
       if (slides[activeSlideIndex].content) {
         fabricCanvas.loadFromJSON(slides[activeSlideIndex].content, () => {
           fabricCanvas.renderAll()
-          console.log("Slide content loaded successfully")
+          console.log("Slide content loaded successfully for slide", activeSlideIndex)
         })
       } else {
         // Empty slide
         fabricCanvas.renderAll()
+        console.log("Loaded empty slide", activeSlideIndex)
       }
 
-      // Update previous slide index AFTER loading
       previousSlideIndex.current = activeSlideIndex
     } catch (error) {
       console.error("Failed to load slide content:", error)
     }
-  }, [activeSlideIndex, slides, canvasRef])
+  }, [activeSlideIndex, slides, canvasRef, dispatch])
 
   return (
     <div className="flex items-center justify-center h-full p-8">

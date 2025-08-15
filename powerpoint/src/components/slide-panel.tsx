@@ -14,6 +14,16 @@ export default function SlidePanel() {
   const { canvasRef } = useCanvas()
 
   const handleAddSlide = () => {
+    const canvas = canvasRef.current
+    if (canvas) {
+      try {
+        const currentContent = JSON.stringify(canvas.toJSON())
+        dispatch(updateSlideContent({ index: activeSlideIndex, content: currentContent }))
+      } catch (error) {
+        console.error("Failed to save current slide content before adding new slide:", error)
+      }
+    }
+
     dispatch(addSlide())
     dispatch(clearHistory())
   }
