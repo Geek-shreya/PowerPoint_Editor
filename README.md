@@ -4,7 +4,7 @@ A full-stack, production-ready PowerPoint-style presentation editor built with N
 
 ## 🚀 Live Demo
 
-[View Live Application](https://powerpoint-editor-metaupspace.vercel.app)
+[View Live Application](https://powerpoint-editor.vercel.app)
 
 ## ✨ Features
 

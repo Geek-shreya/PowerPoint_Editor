@@ -9,7 +9,7 @@ import { useCanvas } from "./canvas-context"
 
 export default function FileOperations() {
   const dispatch = useAppDispatch()
-  const { slides, activeSlide } = useAppSelector((state) => state.presentation)
+  const { slides, activeSlideIndex } = useAppSelector((state) => state.presentation)
   const { toast } = useToast()
   const { canvasRef } = useCanvas()
 
@@ -107,7 +107,7 @@ export default function FileOperations() {
 
       const link = document.createElement("a")
       link.href = dataURL
-      link.download = `slide-${activeSlide + 1}.png`
+      link.download = `slide-${activeSlideIndex + 1}.png`
       link.click()
 
       toast({
@@ -135,7 +135,7 @@ export default function FileOperations() {
     }
 
     try {
-      const originalActiveSlide = activeSlide
+      const originalActiveSlide = activeSlideIndex
 
       for (let i = 0; i < slides.length; i++) {
         dispatch(setActiveSlide(i))
@@ -200,7 +200,7 @@ export default function FileOperations() {
       const PptxGenJS = (await import("pptxgenjs")).default
 
       const pptx = new PptxGenJS()
-      const originalActiveSlide = activeSlide
+      const originalActiveSlide = activeSlideIndex
 
       for (let i = 0; i < slides.length; i++) {
         dispatch(setActiveSlide(i))
