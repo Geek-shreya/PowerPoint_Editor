@@ -88,11 +88,39 @@ export default function CanvasArea() {
     console.log("Setting up canvas event listeners...")
 
     const handleSelectionCreated = (e: any) => {
-      dispatch(setSelectedObject(e.selected[0] || null))
+      const selectedObject = e.selected[0]
+      if (selectedObject) {
+        dispatch(
+          setSelectedObject({
+            type: selectedObject.type,
+            id: selectedObject.id || selectedObject.uuid,
+            left: selectedObject.left,
+            top: selectedObject.top,
+            width: selectedObject.width,
+            height: selectedObject.height,
+          }),
+        )
+      } else {
+        dispatch(setSelectedObject(null))
+      }
     }
 
     const handleSelectionUpdated = (e: any) => {
-      dispatch(setSelectedObject(e.selected[0] || null))
+      const selectedObject = e.selected[0]
+      if (selectedObject) {
+        dispatch(
+          setSelectedObject({
+            type: selectedObject.type,
+            id: selectedObject.id || selectedObject.uuid,
+            left: selectedObject.left,
+            top: selectedObject.top,
+            width: selectedObject.width,
+            height: selectedObject.height,
+          }),
+        )
+      } else {
+        dispatch(setSelectedObject(null))
+      }
     }
 
     const handleSelectionCleared = () => {
