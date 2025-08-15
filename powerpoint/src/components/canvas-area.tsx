@@ -4,8 +4,12 @@ import { useEffect, useRef } from "react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { updateSlideContent, setSelectedObject, updateSlideThumbnail } from "@/store/slices/presentationSlice"
 import { saveState } from "@/store/slices/undoRedoSlice"
-import * as fabric from "fabric"
+import * as fabric  from "fabric"
 import { useCanvas } from "./canvas-context"
+
+interface FabricSelectionEvent {
+  selected: fabric.Object[]
+}
 
 export default function CanvasArea() {
   const canvasElementRef = useRef<HTMLCanvasElement>(null)
@@ -36,16 +40,29 @@ export default function CanvasArea() {
   useEffect(() => {
     if (!canvasElementRef.current || canvasRef.current) return
 
+    // Ensure canvas element is properly mounted and has context
+    const canvasElement = canvasElementRef.current
+    const context = canvasElement.getContext("2d")
+    if (!context) {
+      console.error("Failed to get 2D context from canvas element")
+      return
+    }
+
     try {
       console.log("Initializing Fabric.js canvas...")
 
-      const fabricCanvas = new fabric.Canvas(canvasElementRef.current, {
+      const fabricCanvas = new fabric.Canvas(canvasElement, {
         width: 800,
         height: 600,
         backgroundColor: "#ffffff",
         selection: true,
         preserveObjectStacking: true,
       })
+
+      if (!fabricCanvas || !fabricCanvas.getContext()) {
+        console.error("Failed to create Fabric.js canvas or get context")
+        return
+      }
 
       fabricCanvas.renderAll()
       canvasRef.current = fabricCanvas
@@ -87,13 +104,13 @@ export default function CanvasArea() {
 
     console.log("Setting up canvas event listeners...")
 
-    const handleSelectionCreated = (e: any) => {
+    const handleSelectionCreated = (e: FabricSelectionEvent) => {
       const selectedObject = e.selected[0]
       if (selectedObject) {
         dispatch(
           setSelectedObject({
             type: selectedObject.type,
-            id: selectedObject.id || selectedObject.uuid,
+            id: (selectedObject as any).id || (selectedObject as any).uuid,
             left: selectedObject.left,
             top: selectedObject.top,
             width: selectedObject.width,
@@ -105,13 +122,13 @@ export default function CanvasArea() {
       }
     }
 
-    const handleSelectionUpdated = (e: any) => {
+    const handleSelectionUpdated = (e: FabricSelectionEvent) => {
       const selectedObject = e.selected[0]
       if (selectedObject) {
         dispatch(
           setSelectedObject({
             type: selectedObject.type,
-            id: selectedObject.id || selectedObject.uuid,
+            id: (selectedObject as any).id || (selectedObject as any).uuid,
             left: selectedObject.left,
             top: selectedObject.top,
             width: selectedObject.width,
@@ -181,7 +198,12 @@ export default function CanvasArea() {
 
   useEffect(() => {
     const fabricCanvas = canvasRef.current
-    if (!fabricCanvas || !slides[activeSlideIndex]) return
+    if (!fabricCanvas || !fabricCanvas.getContext()) {
+      console.warn("Canvas or canvas context not available for slide switching")
+      return
+    }
+
+    if (!slides[activeSlideIndex]) return
 
     if (previousSlideIndex.current !== activeSlideIndex) {
       console.log(
@@ -210,6 +232,12 @@ export default function CanvasArea() {
     console.log("Loading slide content for slide", activeSlideIndex)
 
     try {
+      const context = fabricCanvas.getContext()
+      if (!context) {
+        console.error("Canvas context lost, cannot clear canvas")
+        return
+      }
+
       fabricCanvas.clear()
 
       // Load the active slide content

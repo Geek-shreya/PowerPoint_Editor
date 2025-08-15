@@ -8,9 +8,22 @@ import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
+import { useCanvas } from "./canvas-context"
+
+interface FabricObjectWithProperties {
+  fill?: string
+  stroke?: string
+  strokeWidth?: number
+  opacity?: number
+  fontSize?: number
+  fontFamily?: string
+  text?: string
+  [key: string]: unknown
+}
 
 export default function PropertyPanel() {
-  const { selectedObject, canvas, activeSlideIndex } = useAppSelector((state) => state.presentation)
+  const { selectedObject, activeSlideIndex } = useAppSelector((state) => state.presentation)
+  const { canvasRef } = useCanvas()
   const dispatch = useAppDispatch()
 
   const [properties, setProperties] = useState({
@@ -25,25 +38,27 @@ export default function PropertyPanel() {
 
   useEffect(() => {
     if (selectedObject) {
+      const obj = selectedObject as FabricObjectWithProperties
       setProperties({
-        fill: (selectedObject as any).fill || "#000000",
-        stroke: (selectedObject as any).stroke || "#000000",
-        strokeWidth: (selectedObject as any).strokeWidth || 1,
+        fill: obj.fill || "#000000",
+        stroke: obj.stroke || "#000000",
+        strokeWidth: obj.strokeWidth || 1,
         opacity: selectedObject.opacity || 1,
-        fontSize: (selectedObject as any).fontSize || 20,
-        fontFamily: (selectedObject as any).fontFamily || "Arial",
-        text: (selectedObject as any).text || "",
+        fontSize: obj.fontSize || 20,
+        fontFamily: obj.fontFamily || "Arial",
+        text: obj.text || "",
       })
     }
   }, [selectedObject])
 
-  const updateProperty = (property: string, value: any) => {
-    if (!selectedObject || !canvas) return
-    ;(selectedObject as any)[property] = value
-    canvas.renderAll()
+  const updateProperty = (property: string, value: string | number) => {
+    if (!selectedObject || !canvasRef.current) return
+    const obj = selectedObject as FabricObjectWithProperties
+    obj[property] = value
+    canvasRef.current.renderAll()
 
     // Save canvas state
-    const canvasData = JSON.stringify(canvas.toJSON())
+    const canvasData = JSON.stringify(canvasRef.current.toJSON())
     dispatch(updateSlideContent({ index: activeSlideIndex, content: canvasData }))
 
     setProperties((prev) => ({ ...prev, [property]: value }))

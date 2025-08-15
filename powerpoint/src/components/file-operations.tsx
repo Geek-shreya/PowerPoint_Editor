@@ -35,7 +35,7 @@ export default function FileOperations() {
         title: "Success",
         description: "Presentation saved successfully!",
       })
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to save presentation.",
@@ -62,9 +62,24 @@ export default function FileOperations() {
             dispatch(loadPresentation({ slides: data.slides }))
 
             if (canvasRef.current && data.slides[0]?.content) {
-              canvasRef.current.loadFromJSON(data.slides[0].content, () => {
-                canvasRef.current?.renderAll()
-              })
+              // Validate canvas context exists
+              const canvasElement = canvasRef.current.getElement()
+              const context = canvasElement?.getContext("2d")
+
+              if (context && canvasElement) {
+                try {
+                  canvasRef.current.loadFromJSON(data.slides[0].content, () => {
+                    canvasRef.current?.renderAll()
+                  })
+                } catch (loadError) {
+                  console.error("[v0] Canvas load error:", loadError)
+                  // Clear canvas and try again
+                  canvasRef.current.clear()
+                  canvasRef.current.renderAll()
+                }
+              } else {
+                console.warn("[v0] Canvas context not available during load")
+              }
             }
 
             toast({
@@ -74,7 +89,7 @@ export default function FileOperations() {
           } else {
             throw new Error("Invalid file format")
           }
-        } catch (error) {
+        } catch {
           toast({
             title: "Error",
             description: "Failed to load presentation. Please check the file format.",
@@ -141,12 +156,22 @@ export default function FileOperations() {
         dispatch(setActiveSlide(i))
 
         if (slides[i].content) {
-          await new Promise<void>((resolve) => {
-            canvasRef.current?.loadFromJSON(slides[i].content, () => {
-              canvasRef.current?.renderAll()
-              resolve()
+          const canvasElement = canvasRef.current.getElement()
+          const context = canvasElement?.getContext("2d")
+
+          if (context && canvasElement) {
+            await new Promise<void>((resolve) => {
+              try {
+                canvasRef.current?.loadFromJSON(slides[i].content, () => {
+                  canvasRef.current?.renderAll()
+                  resolve()
+                })
+              } catch (loadError) {
+                console.error("[v0] Export load error:", loadError)
+                resolve()
+              }
             })
-          })
+          }
         }
 
         await new Promise((resolve) => setTimeout(resolve, 100))
